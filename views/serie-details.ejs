@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= serie.title %></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center"><%= serie.title %></h1>
+        <div class="row">
+            <div class="col-md-4">
+                <img src="<%= serie.cover_url %>" class="img-fluid" alt="<%= serie.title %>">
+            </div>
+            <div class="col-md-8">
+                <h3>Director: <%= serie.director %></h3>
+                <p><strong>Genre:</strong> <%= serie.genre %></p>
+                <p><strong>Published Year:</strong> <%= serie.release_year %></p>
+                <h4>Summary</h4>
+                <p><%= serie.summary %></p>
+            </div>
+        </div>
+        <a href="/home" class="btn btn-secondary mt-3">Back to Home</a>
+    </div>
+</body>
+</html>
