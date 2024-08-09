@@ -1,7 +1,7 @@
 import express from 'express';
 import session from 'express-session';
 import db from './db.js';
-
+import axios from 'axios';
 const app = express();
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));

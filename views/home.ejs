@@ -42,6 +42,11 @@
     </div>
     <div class="container">
         <h1 class="text-center"> <%= usernames.username %>'s Favorite Series</h1>
+
+        <div class="text-center mt-3">
+            <button id="delete-series-btn" class="btn btn-danger">Delete Series</button>
+            <a href="/add-serie" class="btn btn-outline-dark">Add new Serie</a>
+        </div>
         <div class="row" id="series-container">
             <% favoriteSeries.forEach(serie => { %>
                 <div class="col-md-4">
@@ -57,12 +62,15 @@
             <% }) %>
         </div>
 
-        <div class="text-center mt-3">
-            <button id="delete-series-btn" class="btn btn-danger">Delete Series</button>
-            <a href="/add-serie" class="btn btn-info">Add new Serie</a>
-        </div>
+      
 
         <h1 class="text-center mt-5"><%= usernames.username %>'s Favorite Movies</h1>
+
+        <div class="text-center mt-3">
+            <button id="delete-movies-btn" class="btn btn-danger">Delete Movies</button>
+            <a href="/add-movie" class="btn btn-outline-dark">Add new Movie</a>
+        </div>
+
         <div class="row" id="movies-container">
             <% favoriteMovies.forEach(movie => { %>
                 <div class="col-md-4">
@@ -79,10 +87,7 @@
         </div>
 
 
-        <div class="text-center mt-3">
-            <button id="delete-movies-btn" class="btn btn-danger">Delete Movies</button>
-            <a href="/add-movie" class="btn btn-info">Add new Movie</a>
-        </div>
+      
 
         
 
