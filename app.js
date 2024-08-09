@@ -102,6 +102,46 @@ app.post('/register', async (req, res) => {
     }
 });
 
+app.get('/home', async (req, res) => {
+    if (!req.session.userId) {
+        return res.redirect('/login');
+    }
+
+    try {
+        // Favorite series query
+        const seriesQuery = `
+            SELECT s.id, s.title, s.director, s.cover_url
+            FROM series s
+            JOIN user_series us ON s.id = us.serie_id
+            WHERE us.user_id = $1
+        `;
+        const { rows: favoriteSeries } = await db.query(seriesQuery, [req.session.userId]);
+
+        // Favorite movies query
+        const moviesQuery = `
+            SELECT m.id, m.title, m.director, m.cover_url
+            FROM movies m
+            JOIN user_movies um ON m.id = um.movie_id
+            WHERE um.user_id = $1
+        `;
+        const { rows: favoriteMovies } = await db.query(moviesQuery, [req.session.userId]);
+
+        // Fetch username
+        const usernameQuery = `
+            SELECT id,username,email FROM users
+            WHERE id = $1
+        `;
+      
+        const { rows: usernames } = await db.query(usernameQuery, [req.session.userId]);
+        
+        // Render the home page with data
+        res.render('home', { favoriteSeries, favoriteMovies, usernames: usernames[0] });
+    } catch (error) {
+        console.error('Error fetching favorite series or movies:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 app.post('/add-serie', async (req, res) => {
     const { id,title,director,genre,release_year,cover_url,summary} = req.body;
@@ -162,36 +202,7 @@ app.post('/add-movie', async (req, res) => {
 });
 
 
-app.get('/home', async (req, res) => {
-    if (!req.session.userId) {
-        return res.redirect('/login');
-    }
 
-    try {
-        // Favorite series query
-        const seriesQuery = `
-            SELECT s.id, s.title, s.director, s.cover_url
-            FROM series s
-            JOIN user_series us ON s.id = us.serie_id
-            WHERE us.user_id = $1
-        `;
-        const { rows: favoriteSeries } = await db.query(seriesQuery, [req.session.userId]);
-
-        // Favorite movies query
-        const moviesQuery = `
-            SELECT m.id, m.title, m.director, m.cover_url
-            FROM movies m
-            JOIN user_movies um ON m.id = um.movie_id
-            WHERE um.user_id = $1
-        `;
-        const { rows: favoriteMovies } = await db.query(moviesQuery, [req.session.userId]);
-
-        res.render('home', { favoriteSeries, favoriteMovies });
-    } catch (error) {
-        console.error('Error fetching favorite series or movies:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 
 app.get('/series/:id', async (req, res) => {
@@ -265,6 +276,88 @@ app.post('/add-book', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
+
+app.post('/remove-favorite-movie', async (req, res) => {
+    const { movieId } = req.body;
+
+    if (!req.session.userId) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const deleteFavoriteMovieQuery = `
+            DELETE FROM user_movies 
+            WHERE user_id = $1 AND movie_id = $2;
+        `;
+        await db.query(deleteFavoriteMovieQuery, [req.session.userId, movieId]);
+        res.redirect('/home');
+    } 
+    catch (error) {
+        console.error('Error removing favorite movie:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post('/remove-favorite-serie', async (req, res) => {
+    const { serieId } = req.body;
+
+    if (!req.session.userId) {
+        return res.redirect('/login');
+    }
+
+    try {
+        const deleteFavoriteSerieQuery = `
+            DELETE FROM user_series 
+            WHERE user_id = $1 AND serie_id = $2;
+        `;
+        await db.query(deleteFavoriteSerieQuery, [req.session.userId, serieId]);
+        res.redirect('/home');
+    } 
+    catch (error) {
+        console.error('Error removing favorite serie:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post('/change-password', async (req, res) => {
+    if (!req.session.userId) {
+        return res.redirect('/login');
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        // Kullanıcının mevcut şifresini doğrula
+        const checkPasswordQuery = `
+            SELECT password FROM users WHERE id = $1;
+        `;
+        const { rows: userRows } = await db.query(checkPasswordQuery, [req.session.userId]);
+
+        if (userRows.length === 0) {
+            return res.render('change-password', { error: 'User not found' });
+        }
+
+        const storedPassword = userRows[0].password;
+
+        if (storedPassword !== currentPassword) {
+            return res.render('change-password', { error: 'Current password is incorrect' });
+        }
+
+        // Yeni şifreyi güncelle
+        const updatePasswordQuery = `
+            UPDATE users
+            SET password = $1
+            WHERE id = $2;
+        `;
+        await db.query(updatePasswordQuery, [newPassword, req.session.userId]);
+
+        res.render('change-password', { success: 'Password updated successfully' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 
 
 const PORT = process.env.PORT || 3000;

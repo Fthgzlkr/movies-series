@@ -1,76 +1,112 @@
-/* Genel ayarlar */
+/* Renk Değişkenleri */
+:root {
+    --primary-color: #007bff;
+    --primary-hover-color: #0056b3;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --background-color: #f8f9fa;
+    --text-color: #343a40;
+    --secondary-text-color: #6c757d;
+    --white-color: #ffffff;
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Genel Ayarlar */
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f8f9fa;
-    color: #343a40;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
 }
 
-/* Container ayarları */
+/* Container Ayarları */
 .container {
-    max-width: 1200px; /* Genişliği arttırdık */
-    margin-top: 50px;
+    max-width: 1200px;
+    margin: 50px auto;
     padding: 20px;
-    background: #ffffff;
+    background: var(--white-color);
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--box-shadow);
 }
 
-/* Başlık stilleri */
+/* Başlıklar */
 h1, h2 {
-    color: #007bff;
+    color: var(--primary-color);
     margin-bottom: 20px;
+    text-align: center;
 }
 
-/* Grid düzeni için ayarlar */
+/* Grid Düzeni */
 .row {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between; /* Kartlar arasında boşluk bırakır */
-    gap: 20px; /* Kartlar arasında boşluk */
+    gap: 20px;
+    justify-content: space-between;
 }
 
-/* Kart düzenlemeleri */
+/* Kart Düzeni */
 .card {
-    flex: 0 0 32%; /* Kartların genişliğini %32 olarak ayarladık, böylece üçü yan yana gelir */
+    flex: 0 0 32%;
+    background: var(--white-color);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease-in-out;
+    box-shadow: var(--box-shadow);
+    transition: transform 0.3s ease;
 }
 
 .card:hover {
-    transform: scale(1.05); /* Hover'da büyüme efekti */
+    transform: scale(1.05);
 }
 
 .card img {
     border-radius: 8px 8px 0 0;
-    max-height: 250px; /* Resmin yüksekliği sınırlandı */
-    object-fit: cover; /* Resim kesilmeden sığdırıldı */
+    max-height: 250px;
+    object-fit: cover;
+    width: 100%;
 }
 
 .card-title {
     font-size: 1.25rem;
-    color: #343a40;
+    color: var(--text-color);
+    margin-bottom: 10px;
 }
 
 .card-text {
-    color: #6c757d;
+    color: var(--secondary-text-color);
+    margin-bottom: 15px;
 }
 
-/* Buton düzenlemeleri */
-.btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
-    color: #fff;
+/* Butonlar */
+.btn-primary, .btn-danger, .btn-info {
     border-radius: 4px;
+    color: var(--white-color);
+    padding: 10px 20px;
+    text-align: center;
+    display: inline-block;
+    margin: 5px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border: 1px solid var(--primary-color);
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
-    border-color: #004085;
+    background-color: var(--primary-hover-color);
+    border-color: var(--primary-hover-color);
 }
 
+.btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
 
+.btn-info {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+}
 
 /* Footer */
 footer {
@@ -79,4 +115,11 @@ footer {
     padding: 10px;
     background: #f1f1f1;
     border-top: 1px solid #e5e5e5;
+}
+
+/* Seçili Kart Efekti */
+.card.selected {
+    transform: scale(1.1);
+    border: 2px solid red;
+    cursor: pointer;
 }
