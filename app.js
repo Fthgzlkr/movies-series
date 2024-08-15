@@ -263,81 +263,33 @@ app.post('/add-movie', async (req, res) => {
     }
 });
 
-app.get('/series/:id', async (req, res) => {
-    const serieId = parseInt(req.params.id, 10);
-    if (isNaN(serieId)) {
-        return res.status(400).send('Invalid series ID');
+const getDetails = async (req, res, type) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) {
+        return res.status(400).send('Invalid ID');
     }
 
     try {
-        const serieQuery = 'SELECT * FROM series WHERE id = $1';
-        const { rows } = await db.query(serieQuery, [serieId]);
+        const query = `SELECT * FROM ${type} WHERE id = $1`;
+        const { rows } = await db.query(query, [id]);
 
         if (rows.length === 0) {
-            return res.status(404).send('Series not found');
+            return res.status(404).send(`${type.charAt(0).toUpperCase() + type.slice(1)} not found`);
         }
 
-        const serie = rows[0];
-        res.render('serie-details', { serie });
+        const item = rows[0];
+        res.render(`${type}-details`, { [type]: item });
     } catch (error) {
-        console.error('Error fetching series details:', error);
+        console.error(`Error fetching ${type} details:`, error);
         res.status(500).send('Internal Server Error');
     }
-});
+};
 
-app.get('/movies/:id', async (req, res) => {
-    const movieId = parseInt(req.params.id, 10);
-    if (isNaN(movieId)) {
-        return res.status(400).send('Invalid movie ID');
-    }
+app.get('/series/:id', (req, res) => getDetails(req, res, 'series'));
+app.get('/movies/:id', (req, res) => getDetails(req, res, 'movies'));
 
-    try {
-        const movieQuery = 'SELECT * FROM movies WHERE id = $1';
-        const { rows } = await db.query(movieQuery, [movieId]);
 
-        if (rows.length === 0) {
-            return res.status(404).send('Movie not found');
-        }
 
-        const movie = rows[0];
-        res.render('movie-details', { movie });
-    } catch (error) {
-        console.error('Error fetching movie details:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-app.post('/add-book', async (req, res) => {
-    const { title, author, genre, published_year } = req.body;
-
-    if (!req.isAuthenticated()) {
-        return res.redirect('/login');
-    }
-
-    try {
-        const insertBookQuery = `
-            INSERT INTO books (title, author, genre, published_year)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (title, author) DO UPDATE
-            SET genre = EXCLUDED.genre, published_year = EXCLUDED.published_year
-            RETURNING id;
-        `;
-        const { rows } = await db.query(insertBookQuery, [title, author, genre, published_year]);
-        const bookId = rows[0].id;
-
-        const insertUserBookQuery = `
-            INSERT INTO user_books (user_id, book_id)
-            VALUES ($1, $2)
-            ON CONFLICT DO NOTHING;
-        `;
-        await db.query(insertUserBookQuery, [req.user.id, bookId]);
-
-        res.redirect('/home');
-    } catch (error) {
-        console.error('Error adding book:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 app.post('/remove-favorite-movie', async (req, res) => {
     const { movieId } = req.body;
@@ -388,19 +340,19 @@ app.post('/change-password', async (req, res) => {
 
     try {
         const checkPasswordQuery = `
-            SELECT password FROM users WHERE id = $1;
+            SELECT * FROM users WHERE id = $1;
         `;
         const { rows: userRows } = await db.query(checkPasswordQuery, [req.user.id]);
 
         if (userRows.length === 0) {
-            return res.render('home', { error: 'User not found' });
+            return res.render('home', { error: 'Kullanıcı bulunamadı', usernames: req.user });
         }
 
         const storedPassword = userRows[0].password;
         const isMatch = await bcrypt.compare(currentPassword, storedPassword);
 
         if (!isMatch) {
-            return res.render('home', { error: 'Current password is incorrect' });
+            return res.render('home', { error: 'Mevcut şifre yanlış', usernames: req.user });
         }
 
         const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
@@ -411,9 +363,30 @@ app.post('/change-password', async (req, res) => {
         `;
         await db.query(updatePasswordQuery, [hashedNewPassword, req.user.id]);
 
-        res.render('home', { success: 'Password updated successfully' });
+        // Kullanıcının favori dizilerini ve filmlerini al
+        const favoriteSeriesQuery = `
+            SELECT * FROM series WHERE id IN (
+                SELECT serie_id FROM user_series WHERE user_id = $1
+            );
+        `;
+        const favoriteMoviesQuery = `
+            SELECT * FROM movies WHERE id IN (
+                SELECT movie_id FROM user_movies WHERE user_id = $1
+            );
+        `;
+
+        const { rows: favoriteSeries } = await db.query(favoriteSeriesQuery, [req.user.id]);
+        const { rows: favoriteMovies } = await db.query(favoriteMoviesQuery, [req.user.id]);
+
+        // Ana sayfayı render ederken kullanıcı bilgileriyle birlikte favori dizileri ve filmleri de gönder
+        res.render('home', { 
+            success: 'Şifre başarıyla güncellendi', 
+            usernames: req.user, 
+            favoriteSeries, 
+            favoriteMovies 
+        });
     } catch (error) {
-        console.error('Error changing password:', error);
+        console.error('Şifre değiştirilirken hata oluştu:', error);
         res.status(500).send('Internal Server Error');
     }
 });
