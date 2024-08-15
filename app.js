@@ -207,7 +207,7 @@ app.get('/home', async (req, res) => {
     }
 });
 
-app.post('/add-serie', async (req, res) => {
+const addItem = async (req, res, type) => {
     const { id, title, director, genre, release_year, cover_url, summary } = req.body;
 
     if (!req.isAuthenticated()) {
@@ -215,53 +215,34 @@ app.post('/add-serie', async (req, res) => {
     }
 
     try {
-        const insertSerieQuery = `
-            INSERT INTO series (id, title, director, genre, release_year, cover_url, summary)
+        
+        const insertQuery = `
+            INSERT INTO ${type}s (id, title, director, genre, release_year, cover_url, summary)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id;
         `;
-        const { rows } = await db.query(insertSerieQuery, [id, title, director, genre, release_year, cover_url, summary]);
-        const serieId = rows[0].id;
+        const { rows } = await db.query(insertQuery, [id, title, director, genre, release_year, cover_url, summary]);
+        const itemId = rows[0].id;
 
-        const insertUserSerieQuery = `
-            INSERT INTO user_series (user_id, serie_id)
+       
+        const userTable = `user_${type}s`;
+        const insertUserQuery = `
+            INSERT INTO ${userTable} (user_id, ${type}_id)
             VALUES ($1, $2);
         `;
-        await db.query(insertUserSerieQuery, [req.user.id, serieId]);
-        res.redirect('/add-serie');
+        await db.query(insertUserQuery, [req.user.id, itemId]);
+        
+        const redirectPage = type === 'serie' ? '/add-serie' : '/home';
+        res.redirect(redirectPage);
     } catch (error) {
-        console.error('Error registering serie:', error);
+        console.error(`Error registering ${type}:`, error);
         res.status(500).send('Internal Server Error');
     }
-});
+};
 
-app.post('/add-movie', async (req, res) => {
-    const { id, title, director, genre, release_year, cover_url, summary } = req.body;
+app.post('/add-serie', (req, res) => addItem(req, res, 'serie'));
+app.post('/add-movie', (req, res) => addItem(req, res, 'movie'));
 
-    if (!req.isAuthenticated()) {
-        return res.redirect('/login');
-    }
-
-    try {
-        const insertMovieQuery = `
-            INSERT INTO movies (id, title, director, genre, release_year, cover_url, summary)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id;
-        `;
-        const { rows } = await db.query(insertMovieQuery, [id, title, director, genre, release_year, cover_url, summary]);
-        const movieId = rows[0].id;
-
-        const insertUserMovieQuery = `
-            INSERT INTO user_movies (user_id, movie_id)
-            VALUES ($1, $2);
-        `;
-        await db.query(insertUserMovieQuery, [req.user.id, movieId]);
-        res.redirect('/home');
-    } catch (error) {
-        console.error('Error registering movie:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
 
 const getDetails = async (req, res, type) => {
     const id = parseInt(req.params.id, 10);
@@ -270,7 +251,9 @@ const getDetails = async (req, res, type) => {
     }
 
     try {
-        const query = `SELECT * FROM ${type} WHERE id = $1`;
+       
+        const tableName = type === 'serie' ? 'series' : 'movies'; 
+        const query = `SELECT * FROM ${tableName} WHERE id = $1`;
         const { rows } = await db.query(query, [id]);
 
         if (rows.length === 0) {
@@ -285,51 +268,38 @@ const getDetails = async (req, res, type) => {
     }
 };
 
-app.get('/series/:id', (req, res) => getDetails(req, res, 'series'));
-app.get('/movies/:id', (req, res) => getDetails(req, res, 'movies'));
+app.get('/series/:id', (req, res) => getDetails(req, res, 'serie'));
+app.get('/movies/:id', (req, res) => getDetails(req, res, 'movie'));
 
 
 
-
-app.post('/remove-favorite-movie', async (req, res) => {
-    const { movieId } = req.body;
-
-    if (!req.isAuthenticated()) {
-        return res.redirect('/login');
-    }
-
-    try {
-        const deleteFavoriteMovieQuery = `
-            DELETE FROM user_movies 
-            WHERE user_id = $1 AND movie_id = $2;
-        `;
-        await db.query(deleteFavoriteMovieQuery, [req.user.id, movieId]);
-        res.redirect('/home');
-    } catch (error) {
-        console.error('Error removing favorite movie:', error);
-        res.status(500).send('Internal Server Error');
-    }
-});
-
-app.post('/remove-favorite-serie', async (req, res) => {
-    const { serieId } = req.body;
+const removeFavorite = async (req, res, type) => {
+    const id = req.body[`${type}Id`];
 
     if (!req.isAuthenticated()) {
         return res.redirect('/login');
     }
 
     try {
-        const deleteFavoriteSerieQuery = `
-            DELETE FROM user_series 
-            WHERE user_id = $1 AND serie_id = $2;
+        const tableName = type === 'serie' ? 'user_series' : 'user_movies';
+        const column = type === 'serie' ? 'serie_id' : 'movie_id';
+
+        const deleteQuery = `
+            DELETE FROM ${tableName}
+            WHERE user_id = $1 AND ${column} = $2;
         `;
-        await db.query(deleteFavoriteSerieQuery, [req.user.id, serieId]);
+        await db.query(deleteQuery, [req.user.id, id]);
+
         res.redirect('/home');
     } catch (error) {
-        console.error('Error removing favorite serie:', error);
+        console.error(`Error removing favorite ${type}:`, error);
         res.status(500).send('Internal Server Error');
     }
-});
+};
+
+app.post('/remove-favorite-movie', (req, res) => removeFavorite(req, res, 'movie'));
+app.post('/remove-favorite-serie', (req, res) => removeFavorite(req, res, 'serie'));
+
 
 app.post('/change-password', async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -363,7 +333,6 @@ app.post('/change-password', async (req, res) => {
         `;
         await db.query(updatePasswordQuery, [hashedNewPassword, req.user.id]);
 
-        // Kullanıcının favori dizilerini ve filmlerini al
         const favoriteSeriesQuery = `
             SELECT * FROM series WHERE id IN (
                 SELECT serie_id FROM user_series WHERE user_id = $1
@@ -378,7 +347,6 @@ app.post('/change-password', async (req, res) => {
         const { rows: favoriteSeries } = await db.query(favoriteSeriesQuery, [req.user.id]);
         const { rows: favoriteMovies } = await db.query(favoriteMoviesQuery, [req.user.id]);
 
-        // Ana sayfayı render ederken kullanıcı bilgileriyle birlikte favori dizileri ve filmleri de gönder
         res.render('home', { 
             success: 'Şifre başarıyla güncellendi', 
             usernames: req.user, 
