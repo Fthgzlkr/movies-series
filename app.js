@@ -109,6 +109,10 @@ app.get('/logout', (req, res) => {
     });
 });
 
+app.get('/series/:id', (req, res) => getDetails(req, res, 'serie'));
+app.get('/movies/:id', (req, res) => getDetails(req, res, 'movie'));
+
+
 app.post('/login', (req, res, next) => {
     if (!req.session.failedLoginAttempts) {
         req.session.failedLoginAttempts = 0;
@@ -171,41 +175,47 @@ app.post("/register", async (req, res) => {
     }
 });
 
+async function getUserData(userId) {
+    const seriesQuery = `
+        SELECT s.id, s.title, s.director, s.cover_url
+        FROM series s
+        JOIN user_series us ON s.id = us.serie_id
+        WHERE us.user_id = $1
+    `;
+    const { rows: favoriteSeries } = await db.query(seriesQuery, [userId]);
+
+    const moviesQuery = `
+        SELECT m.id, m.title, m.director, m.cover_url
+        FROM movies m
+        JOIN user_movies um ON m.id = um.movie_id
+        WHERE um.user_id = $1
+    `;
+    const { rows: favoriteMovies } = await db.query(moviesQuery, [userId]);
+
+    const usernameQuery = `
+        SELECT id, username, email FROM users
+        WHERE id = $1
+    `;
+    const { rows: usernames } = await db.query(usernameQuery, [userId]);
+
+    return { favoriteSeries, favoriteMovies, usernames: usernames[0] };
+}
+
+
 app.get('/home', async (req, res) => {
     if (!req.isAuthenticated()) {
         return res.redirect('/login');
     }
 
     try {
-        const seriesQuery = `
-            SELECT s.id, s.title, s.director, s.cover_url
-            FROM series s
-            JOIN user_series us ON s.id = us.serie_id
-            WHERE us.user_id = $1
-        `;
-        const { rows: favoriteSeries } = await db.query(seriesQuery, [req.user.id]);
-
-        const moviesQuery = `
-            SELECT m.id, m.title, m.director, m.cover_url
-            FROM movies m
-            JOIN user_movies um ON m.id = um.movie_id
-            WHERE um.user_id = $1
-        `;
-        const { rows: favoriteMovies } = await db.query(moviesQuery, [req.user.id]);
-
-        const usernameQuery = `
-            SELECT id, username, email FROM users
-            WHERE id = $1
-        `;
-      
-        const { rows: usernames } = await db.query(usernameQuery, [req.user.id]);
-
-        res.render('home', { favoriteSeries, favoriteMovies, usernames: usernames[0] });
+        const userData = await getUserData(req.user.id);
+        res.render('home', userData);
     } catch (error) {
-        console.error('Error fetching favorite series or movies:', error);
+        console.error('Error fetching user data:', error);
         res.status(500).send('Internal Server Error');
     }
 });
+
 
 const addItem = async (req, res, type) => {
     const { id, title, director, genre, release_year, cover_url, summary } = req.body;
@@ -223,8 +233,7 @@ const addItem = async (req, res, type) => {
         `;
         const { rows } = await db.query(insertQuery, [id, title, director, genre, release_year, cover_url, summary]);
         const itemId = rows[0].id;
-
-       
+ 
         const userTable = `user_${type}s`;
         const insertUserQuery = `
             INSERT INTO ${userTable} (user_id, ${type}_id)
@@ -239,7 +248,6 @@ const addItem = async (req, res, type) => {
         res.status(500).send('Internal Server Error');
     }
 };
-
 app.post('/add-serie', (req, res) => addItem(req, res, 'serie'));
 app.post('/add-movie', (req, res) => addItem(req, res, 'movie'));
 
@@ -268,10 +276,6 @@ const getDetails = async (req, res, type) => {
     }
 };
 
-app.get('/series/:id', (req, res) => getDetails(req, res, 'serie'));
-app.get('/movies/:id', (req, res) => getDetails(req, res, 'movie'));
-
-
 
 const removeFavorite = async (req, res, type) => {
     const id = req.body[`${type}Id`];
@@ -296,7 +300,6 @@ const removeFavorite = async (req, res, type) => {
         res.status(500).send('Internal Server Error');
     }
 };
-
 app.post('/remove-favorite-movie', (req, res) => removeFavorite(req, res, 'movie'));
 app.post('/remove-favorite-serie', (req, res) => removeFavorite(req, res, 'serie'));
 
@@ -315,14 +318,16 @@ app.post('/change-password', async (req, res) => {
         const { rows: userRows } = await db.query(checkPasswordQuery, [req.user.id]);
 
         if (userRows.length === 0) {
-            return res.render('home', { error: 'Kullanıcı bulunamadı', usernames: req.user });
+            const userData = await getUserData(req.user.id);
+            return res.render('home', { ...userData, error: 'Kullanıcı bulunamadı' });
         }
 
         const storedPassword = userRows[0].password;
         const isMatch = await bcrypt.compare(currentPassword, storedPassword);
 
         if (!isMatch) {
-            return res.render('home', { error: 'Mevcut şifre yanlış', usernames: req.user });
+            const userData = await getUserData(req.user.id);
+            return res.render('home', { ...userData, error: 'Mevcut şifre yanlış' });
         }
 
         const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
@@ -332,33 +337,13 @@ app.post('/change-password', async (req, res) => {
             WHERE id = $2;
         `;
         await db.query(updatePasswordQuery, [hashedNewPassword, req.user.id]);
-
-        const favoriteSeriesQuery = `
-            SELECT * FROM series WHERE id IN (
-                SELECT serie_id FROM user_series WHERE user_id = $1
-            );
-        `;
-        const favoriteMoviesQuery = `
-            SELECT * FROM movies WHERE id IN (
-                SELECT movie_id FROM user_movies WHERE user_id = $1
-            );
-        `;
-
-        const { rows: favoriteSeries } = await db.query(favoriteSeriesQuery, [req.user.id]);
-        const { rows: favoriteMovies } = await db.query(favoriteMoviesQuery, [req.user.id]);
-
-        res.render('home', { 
-            success: 'Şifre başarıyla güncellendi', 
-            usernames: req.user, 
-            favoriteSeries, 
-            favoriteMovies 
-        });
+        const userData = await getUserData(req.user.id);
+        res.render('home', { ...userData, success: 'Şifre başarıyla güncellendi' });
     } catch (error) {
         console.error('Şifre değiştirilirken hata oluştu:', error);
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 
 app.listen(PORT, () => {
