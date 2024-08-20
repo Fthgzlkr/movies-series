@@ -12,11 +12,11 @@
         <div class="col-md-6">
             <div class="card mb-4 shadow-sm">
                 <div class="card-body">
-                    <h1 class="text-center mt-5">Welcome <%= usernames.username %></h1>
+                    <h1 class="text-center mt-5">Welcome <%= userData.username %></h1>
                     <h5 class="card-title">User Information</h5>
-                    <p class="card-text"><strong>ID:</strong> <%= usernames.id %></p>
-                    <p class="card-text"><strong>Username:</strong> <%= usernames.username %></p>
-                    <p class="card-text"><strong>Email:</strong> <%= usernames.email %></p>
+                    <p class="card-text"><strong>ID:</strong> <%= userData.id %></p>
+                    <p class="card-text"><strong>Username:</strong> <%= userData.username %></p>
+                    <p class="card-text"><strong>Email:</strong> <%= userData.email %></p>
                     <a href="/logout" class="btn btn-danger">Logout</a>
 
                     <!-- Şifre değiştirme butonu -->
@@ -41,7 +41,7 @@
         </div>
     </div>
     <div class="container">
-        <h1 class="text-center"> <%= usernames.username %>'s Favorite Series</h1>
+        <h1 class="text-center"> <%= userData.username %>'s Favorite Series</h1>
 
         <div class="text-center mt-3">
             <button id="delete-series-btn" class="btn btn-danger">Delete Series</button>
@@ -64,7 +64,7 @@
 
       
 
-        <h1 class="text-center mt-5"><%= usernames.username %>'s Favorite Movies</h1>
+        <h1 class="text-center mt-5"><%= userData.username %>'s Favorite Movies</h1>
 
         <div class="text-center mt-3">
             <button id="delete-movies-btn" class="btn btn-danger">Delete Movies</button>
