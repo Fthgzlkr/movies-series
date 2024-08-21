@@ -25,25 +25,31 @@ export const renderHomePage = async (req, res) => {
 };
 
 export const changePassword = async (req, res) => {
-    if (!req.isAuthenticated()) {
-        return res.redirect('/login');
-    }
+  
 
     const { currentPassword, newPassword } = req.body;
 
     try {
-        const isMatch = await UserModel.validatePassword(req.user.id, currentPassword);
+        // Kullanıcının mevcut şifresini alıyoruz
+        const favoriteSeries = await SerieModel.getFavoriteSeriesByUserId(req.user.id);
+        const favoriteMovies = await MovieModel.getFavoriteMoviesByUserId(req.user.id);
+        const userData = await UserModel.getUserById(req.user.id);
+        const storedPassword = userData.password;
+
+        // Şifreyi doğruluyoruz
+        const isMatch = await UserModel.validatePassword(currentPassword, storedPassword);
         if (!isMatch) {
-            const userData = await UserModel.getUserById(req.user.id);
             return res.render('home', { ...userData, error: 'Mevcut şifre yanlış' });
         }
 
+        // Yeni şifreyi hash'leyip veritabanında güncelliyoruz
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         await UserModel.updateUserPassword(req.user.id, hashedNewPassword);
-        const userData = await UserModel.getUserById(req.user.id);
-        res.render('home', { ...userData, success: 'Şifre başarıyla güncellendi' });
+
+        res.render('home', { userData,favoriteSeries,favoriteMovies });
     } catch (error) {
         console.error('Şifre değiştirilirken hata oluştu:', error);
         res.status(500).send('Internal Server Error');
     }
 };
+

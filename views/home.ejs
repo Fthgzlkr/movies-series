@@ -1,3 +1,4 @@
+<%- include("partials/homeheader.ejs") %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,10 +18,8 @@
                     <p class="card-text"><strong>ID:</strong> <%= userData.id %></p>
                     <p class="card-text"><strong>Username:</strong> <%= userData.username %></p>
                     <p class="card-text"><strong>Email:</strong> <%= userData.email %></p>
-                    <a href="/logout" class="btn btn-danger">Logout</a>
 
                     <!-- Şifre değiştirme butonu -->
-                    <button id="change-password-btn" class="btn btn-primary">Change Password</button>
 
                     <!-- Şifre değiştirme formu -->
                     <div id="change-password-form" style="display: none;" class="mt-3">
@@ -139,3 +138,4 @@
     </script>
 </body>
 </html>
+<%- include("partials/footer.ejs") %>

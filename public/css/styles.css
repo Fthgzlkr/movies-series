@@ -4,7 +4,7 @@
     --primary-hover-color: #1c86ee; /* Darker Dodger Blue */
     --danger-color: #ff6347; /* Tomato */
     --info-color: #20b2aa; /* Light Sea Green */
-    --background-color: #f0f8ff; /* Alice Blue */
+    --background-color: #d5ccb8; /* Alice Blue */
     --text-color: #2f4f4f; /* Dark Slate Gray */
     --secondary-text-color: #708090; /* Slate Gray */
     --white-color: #ffffff;
@@ -85,16 +85,17 @@ h1, h2 {
 
 /* Butonlar */
 .btn-primary, .btn-danger, .btn-info {
-    border-radius: 8px;
+    border-radius: 10px;
     color: var(--white-color);
     padding: 12px 24px;
     text-align: center;
     display: inline-block;
-    margin: 5px;
+    margin: 5px 10px; /* Butonlar arasında daha fazla boşluk */
     text-decoration: none;
     font-size: 1rem;
     font-weight: 500;
     transition: background-color 0.3s ease, transform 0.3s ease;
+    line-height: 1.5; /* Butonların yüksekliklerinin eşit olmasını sağlar */
 }
 
 .btn-primary {
@@ -114,7 +115,7 @@ h1, h2 {
 }
 
 .btn-danger:hover {
-    background-color: #ff4500; /* Orange Red */
+    background-color: #ff4500; /* Koyu Turuncu Kırmızı */
     border-color: #ff4500;
     transform: translateY(-3px);
 }
@@ -125,19 +126,40 @@ h1, h2 {
 }
 
 .btn-info:hover {
-    background-color: #1e9e98; /* Slightly Darker Light Sea Green */
+    background-color: #1e9e98; /* Biraz Daha Koyu Açık Deniz Yeşili */
     border-color: #1e9e98;
     transform: translateY(-3px);
 }
 
-/* Footer */
-footer {
-    text-align: center;
-    margin-top: 30px;
-    padding: 20px;
-    background: #e6e6e6;
-    border-top: 1px solid #dcdcdc;
-}
+
+/* Navbar */
+.navbar {
+    padding: 10px 20px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .navbar-brand {
+    font-size: 1.5rem; /* Daha büyük başlık metni */
+    font-weight: bold;
+    color: #007bff;
+  }
+  
+  .container-fluid {
+    display: flex;
+    align-items: center; /* İçeriği dikeyde ortalar */
+    justify-content: space-between; /* İçeriği yatayda iki uca iter */
+  }
+  
+  /* Butonlar */
+  .d-flex {
+    display: flex;
+    gap: 10px; /* Butonlar arasındaki boşluğu ayarlar */
+  }
+  
+  .btn {
+    margin: 0 5px;
+  }
+  
 
 /* Seçili Kart Efekti */
 .card.selected {
